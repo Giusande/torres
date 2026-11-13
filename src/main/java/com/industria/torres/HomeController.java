@@ -1,3 +1,4 @@
+
 package com.industria.torres;
 
 import org.springframework.stereotype.Controller;
@@ -8,6 +9,6 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "index";
+        return "forward:/index.html";
     }
 }

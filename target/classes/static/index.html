@@ -1,0 +1,1481 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Gestão das Torres de Resfriamento</title>
+    <style>
+      :root {
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        --bg: #f6f8fa;
+        --card: #fff;
+        --ink: #1f2933;
+        --mut: #66727f;
+        --line: #dde3ea;
+        --navy: #1d4272;
+        --ok: #2e9e5b;
+        --bad: #d64545;
+        --warn: #e3a900;
+        --none: #9aa5b1;
+        --okl: #e8f6ed;
+        --badl: #fcebeb;
+        --warnl: #fff6d6;
+        --nonel: #f1f3f5;
+        color-scheme: light;
+      }
+      html {
+        height: 100%;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.45 "IBM Plex Sans",
+          "Segoe UI",
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0 0 auto;
+        height: env(safe-area-inset-top, 0px);
+        background: var(--card);
+        z-index: 10;
+      }
+      header {
+        background: var(--card);
+        border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: env(safe-area-inset-top, 0px);
+        z-index: 9;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        align-items: center;
+        padding: 10px 18px;
+      }
+      header h1 {
+        font-size: 18px;
+        margin: 0;
+        font-weight: 600;
+        color: var(--navy);
+        flex: 1 1 240px;
+        cursor: pointer;
+      }
+      .clock {
+        font-size: 13px;
+        color: var(--mut);
+      }
+      .btn {
+        min-height: 44px;
+        padding: 0 16px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--ink);
+        border-radius: 6px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn:focus-visible,
+      .chip:focus-visible,
+      .row:focus-visible {
+        outline: 3px solid var(--navy);
+        outline-offset: 2px;
+      }
+      .btn.pri {
+        background: var(--navy);
+        color: #fff;
+        border-color: var(--navy);
+      }
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .kpi {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 10px 14px;
+      }
+      .kpi b {
+        font-size: 26px;
+        display: block;
+        line-height: 1.1;
+      }
+      .kpi span {
+        font-size: 13px;
+        color: var(--mut);
+      }
+      .kpi i {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 6px;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+      }
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+        font-size: 13px;
+        color: var(--mut);
+        margin: 0 0 8px;
+      }
+      .legend i {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: -1px;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .st-ok {
+        --c: var(--ok);
+        --l: var(--okl);
+      }
+      .st-bad {
+        --c: var(--bad);
+        --l: var(--badl);
+      }
+      .st-warn {
+        --c: var(--warn);
+        --l: var(--warnl);
+      }
+      .st-none {
+        --c: var(--none);
+        --l: var(--nonel);
+      }
+      .tile {
+        cursor: pointer;
+      }
+      .tile:focus-visible {
+        outline: none;
+      }
+      .tile .body {
+        fill: var(--l);
+        stroke: var(--c);
+        stroke-width: 3;
+      }
+      .tile:hover .body,
+      .tile:focus-visible .body {
+        stroke-width: 6;
+      }
+      .t-lbl {
+        fill: var(--ink);
+        font-weight: 700;
+      }
+      .t-sub {
+        fill: var(--mut);
+      }
+      .back {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .back h2 {
+        margin: 0 8px;
+        font-size: 20px;
+        flex: 1;
+      }
+      .pill {
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 99px;
+        font-size: 13px;
+        font-weight: 700;
+        background: var(--l);
+        color: var(--ink);
+        border: 2px solid var(--c);
+      }
+      .eff {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border: 2px solid var(--c);
+        background: var(--l);
+        border-radius: 8px;
+        padding: 8px 14px;
+        margin-bottom: 12px;
+      }
+      .eff b {
+        font-size: 30px;
+        line-height: 1;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+      @media (max-width: 900px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .mod {
+        fill: var(--l);
+        stroke: var(--c);
+        stroke-width: 2.5;
+        cursor: pointer;
+      }
+      .mod-g {
+        cursor: pointer;
+      }
+      .mod-g:hover .mod,
+      .mod-g.sel .mod {
+        stroke-width: 6;
+      }
+      .mod-g:focus-visible {
+        outline: none;
+      }
+      .mod-g:focus-visible .mod {
+        stroke-width: 6;
+        stroke: var(--navy);
+      }
+      .list {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        width: 100%;
+        text-align: left;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-left: 8px solid var(--c);
+        border-radius: 6px;
+        padding: 8px 10px;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+        min-height: 48px;
+      }
+      .row.sel {
+        background: var(--l);
+      }
+      .row small {
+        display: block;
+        color: var(--mut);
+      }
+      .row .t {
+        flex: 1;
+      }
+      .chips {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 8px;
+        margin: 8px 0;
+      }
+      .chip {
+        min-height: 52px;
+        border: 2px solid var(--line);
+        background: var(--card);
+        color: var(--ink);
+        border-radius: 8px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 6px;
+      }
+      .chip.on {
+        border-color: var(--navy);
+        background: var(--navy);
+        color: #fff;
+      }
+      .just {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        margin: 8px 0;
+        background: var(--bg);
+      }
+      .just h4 {
+        margin: 0 0 6px;
+      }
+      .sug {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+      .sug button {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--ink);
+        border-radius: 99px;
+        padding: 0 12px;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      textarea {
+        width: 100%;
+        min-height: 70px;
+        font: inherit;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--ink);
+      }
+      textarea.err {
+        border-color: var(--bad);
+        outline: 2px solid var(--bad);
+      }
+      .thumbs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+      .thumbs img {
+        width: 54px;
+        height: 54px;
+        object-fit: cover;
+        border-radius: 6px;
+      }
+      .cond {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin: 8px 0;
+      }
+      .cond .c-ok.on {
+        background: var(--ok);
+        border-color: var(--ok);
+      }
+      .cond .c-warn.on {
+        background: var(--warn);
+        border-color: var(--warn);
+        color: #1f2933;
+      }
+      .cond .c-bad.on {
+        background: var(--bad);
+        border-color: var(--bad);
+      }
+      .cond small {
+        display: block;
+        font-weight: 400;
+        font-size: 11px;
+      }
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: #0007;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 20;
+      }
+      .modal[hidden] {
+        display: none;
+      }
+      .modal > div {
+        background: var(--card);
+        border-radius: 10px;
+        padding: 20px;
+        max-width: 460px;
+        width: 100%;
+      }
+      .modal .acts {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 14px;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%);
+        background: var(--navy);
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 8px;
+        z-index: 30;
+      }
+      .toast[hidden] {
+        display: none;
+      }
+      .note {
+        font-size: 13px;
+        color: var(--mut);
+        margin: 8px 0 0;
+      }
+      .filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 8px;
+        align-items: end;
+        margin-bottom: 10px;
+      }
+      .filters label,
+      .fl {
+        display: block;
+        font-size: 13px;
+        color: var(--mut);
+      }
+      .filters select,
+      .filters input,
+      .fl select,
+      .fl input {
+        display: block;
+        width: 100%;
+        min-height: 44px;
+        font: inherit;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0 8px;
+        background: #fff;
+        color: var(--ink);
+        margin-top: 2px;
+      }
+      .fl {
+        margin-top: 10px;
+      }
+      .tw {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+        min-width: 820px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        color: var(--mut);
+        font-weight: 600;
+        font-size: 13px;
+      }
+      td small {
+        display: block;
+        color: var(--mut);
+      }
+      .trail {
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      .trail small {
+        display: block;
+        color: var(--mut);
+      }
+      .modal > div {
+        max-height: 90vh;
+        overflow: auto;
+      }
+      .grid3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 800px) {
+        .grid3 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .bar {
+        display: grid;
+        grid-template-columns: 110px 1fr 30px;
+        gap: 8px;
+        align-items: center;
+        margin: 6px 0;
+        font-size: 14px;
+      }
+      .bar div {
+        background: var(--nonel);
+        border-radius: 4px;
+        height: 16px;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        background: var(--navy);
+        border-radius: 4px;
+      }
+      .bar b {
+        text-align: right;
+      }
+      .kpi[class*="st-"] {
+        border-left: 6px solid var(--c);
+      }
+      .rep h3 {
+        font-size: 15px;
+        margin: 16px 0 6px;
+      }
+      @media print {
+        header,
+        .no-print,
+        body::before,
+        .toast {
+          display: none !important;
+        }
+        main {
+          padding: 0;
+        }
+        .panel {
+          border: 0;
+        }
+        .tw {
+          overflow: visible;
+        }
+        table {
+          min-width: 0;
+          font-size: 11px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1 id="home">Gestão das Torres de Resfriamento</h1>
+      <span class="clock" id="clock"></span>
+      <button class="btn" id="bh">Histórico</button>
+      <button class="btn" id="ba">Acompanhamento</button>
+      <button class="btn" id="br">Relatório</button>
+    </header>
+    <main id="app"></main>
+    <div class="modal" id="modal" hidden><div id="mbox"></div></div>
+    <div class="toast" id="toast" hidden></div>
+    <script>
+      /* ===== Configuração independente (futuramente vem do banco) ===== */
+      const CONJ_COUNT = 6;
+      const COLS = [40, 230, 420],
+        ROWS = [30, 160, 290, 420];
+      const LAYOUT = [
+        [10, 11, 12],
+        [7, 8, 9],
+        [2, 4, 6],
+        [1, 3, 5],
+      ];
+      const TOWERS = [];
+      LAYOUT.forEach((r, ri) =>
+        r.forEach((n, ci) => TOWERS.push({ n, x: COLS[ci], y: ROWS[ri] })),
+      );
+      const COMPS = [
+        "Estrutura",
+        "Motor",
+        "Rolamento",
+        "Correia",
+        "Lubrificação",
+        "Hélice",
+        "Cabos",
+        "Inversor",
+        "Outros",
+      ];
+      const PRESETS = {
+        Estrutura: [
+          "Apresenta corrosão",
+          "Estrutura com danos físicos",
+          "Necessita de reforço estrutural",
+        ],
+        Motor: [
+          "Motor apresenta aquecimento anormal",
+          "Motor não parte",
+          "Apresenta ruído durante o funcionamento",
+        ],
+        Rolamento: [
+          "Rolamento apresenta ruído excessivo",
+          "Apresenta vibração",
+          "Necessita de substituição",
+        ],
+        Correia: [
+          "Correia desgastada",
+          "Correia rompida",
+          "Necessita de ajuste de tensionamento",
+        ],
+        Lubrificação: [
+          "Necessita de lubrificação",
+          "Apresenta vazamento",
+          "Sistema de lubrificação com irregularidade",
+        ],
+        Hélice: [
+          "Hélice danificada",
+          "Apresenta trincas",
+          "Necessita de avaliação",
+        ],
+        Cabos: [
+          "Cabo danificado",
+          "Apresenta isolamento comprometido",
+          "Necessita de substituição",
+        ],
+        Inversor: [
+          "Apresenta falha",
+          "Não realiza acionamento",
+          "Apresenta alarme",
+        ],
+        Outros: [],
+      };
+      /* Conjunto: D = funcionando, P = funcionando com pendência, I = parado */
+      const COND = {
+        D: { k: "ok", t: "Disponível", d: "Funcionando normal" },
+        P: { k: "warn", t: "Pendente", d: "Funcionando, com pendência" },
+        I: { k: "bad", t: "Indisponível", d: "Parado" },
+      };
+
+      /* ===== Estado ===== */
+      let S = { batch: {}, log: [] };
+      let draft = null;
+      const $ = (s) => document.querySelector(s);
+      const tw = (n) => String(n).padStart(2, "0");
+      const key = (t, a) => t + "-" + a;
+      const kOf = (c) => (c ? COND[c].k : "none");
+      /* Pendências resolvidas deixam de contar; se todas foram resolvidas, o conjunto volta a Disponível. O registro original é mantido. */
+      function targetInfo(t, a) {
+        const b = S.batch[key(t, a)];
+        if (!b) return { cond: null, items: [], ts: null };
+        const m = byId(),
+          items = b.items.filter((i) => !(m[i.id] && m[i.id].status === "R"));
+        return {
+          cond: b.items.length && !items.length ? "D" : b.cond,
+          items,
+          ts: b.ts,
+        };
+      }
+
+      /* Eficiência = conjuntos em funcionamento / total. Só 1 funcionando => amarelo, "Disponível", eficiência baixa. */
+      function towerInfo(t) {
+        let any = false,
+          count = 0,
+          down = 0,
+          pend = false;
+        for (let a = 1; a <= CONJ_COUNT; a++) {
+          const i = targetInfo(t, a);
+          if (!i.cond) continue;
+          any = true;
+          count += i.items.length;
+          if (i.cond === "I") down++;
+          if (i.cond === "P") pend = true;
+        }
+        const g = targetInfo(t, "G");
+        if (g.cond) {
+          any = true;
+          count += g.items.length;
+          if (g.cond === "P") pend = true;
+        }
+        if (!any)
+          return {
+            k: "none",
+            s: "Sem sinalização",
+            long: "Sem sinalização",
+            eff: null,
+            run: CONJ_COUNT,
+            count: 0,
+          };
+        const run = CONJ_COUNT - down,
+          eff = g.cond === "I" ? 0 : Math.round((run / CONJ_COUNT) * 100);
+        const k = eff === 0 ? "bad" : eff < 100 || pend ? "warn" : "ok";
+        const s =
+          eff === 0
+            ? "Indisponível"
+            : eff < 100
+              ? "Disponível"
+              : pend
+                ? "Pendente"
+                : "Disponível";
+        const long =
+          eff === 0
+            ? "Indisponível"
+            : eff < 100
+              ? "Disponível · eficiência " +
+                (eff <= 50 ? "baixa" : "reduzida") +
+                " (" +
+                eff +
+                "%)"
+              : s;
+        return { k, s, long, eff, run, count, gDown: g.cond === "I" };
+      }
+
+      /* ===== Navegação ===== */
+      function route() {
+        const h = location.hash.slice(1),
+          m = h.match(/^torre-(\d+)$/);
+        if (h === "historico") viewHist();
+        else if (h === "relatorio") viewRel();
+        else if (h === "acompanhamento") viewDash();
+        else if (m && TOWERS.some((t) => t.n == +m[1])) viewTower(+m[1]);
+        else viewHome();
+      }
+      window.addEventListener("hashchange", route);
+      $("#home").onclick = () => {
+        location.hash = "";
+        route();
+      };
+      $("#bh").onclick = () => {
+        location.hash = "historico";
+      };
+      $("#ba").onclick = () => {
+        location.hash = "acompanhamento";
+      };
+      $("#br").onclick = () => {
+        location.hash = "relatorio";
+      };
+      function toast(m) {
+        const t = $("#toast");
+        t.textContent = m;
+        t.hidden = false;
+        clearTimeout(toast.id);
+        toast.id = setTimeout(() => (t.hidden = true), 2600);
+      }
+      const clock = () =>
+        ($("#clock").textContent = new Date().toLocaleString("pt-BR", {
+          dateStyle: "short",
+          timeStyle: "short",
+        }));
+      setInterval(clock, 20000);
+      clock();
+
+      /* ===== Planta ===== */
+      function viewHome() {
+        const infos = TOWERS.map((t) => towerInfo(t.n));
+        const n = (k) => infos.filter((i) => i.k === k).length;
+        const tiles = TOWERS.map((t, i) => {
+          const f = infos[i];
+          return `<g class="tile st-${f.k}" tabindex="0" role="button" aria-label="Torre ${tw(t.n)}: ${f.long}, ${f.count} pendências" data-t="${t.n}" transform="translate(${t.x},${t.y})">
+      <rect class="body" width="170" height="104" rx="8"/>
+      <text class="t-lbl" x="14" y="32" font-size="19">TORRE ${tw(t.n)}</text>
+      ${f.count ? `<circle cx="146" cy="26" r="13" fill="var(--c)"/><text x="146" y="31" text-anchor="middle" font-size="14" font-weight="700" fill="${f.k === "warn" ? "#1f2933" : "#fff"}">${f.count}</text>` : ""}
+      <text class="t-lbl" x="14" y="64" font-size="15">${f.s}</text>
+      <text class="t-sub" x="14" y="88" font-size="14">${f.eff === null ? "" : "Eficiência " + f.eff + "%"}</text></g>`;
+        }).join("");
+        $("#app").innerHTML = `
+  <div class="kpis">
+    <div class="kpi"><b>${TOWERS.length}</b><span>Torres cadastradas</span></div>
+    <div class="kpi"><b>${n("ok")}</b><span><i style="background:var(--ok)"></i>Disponíveis</span></div>
+    <div class="kpi"><b>${n("bad")}</b><span><i style="background:var(--bad)"></i>Indisponíveis</span></div>
+    <div class="kpi"><b>${n("warn")}</b><span><i style="background:var(--warn)"></i>Com pendências / baixa eficiência</span></div>
+  </div>
+  <section class="panel"><h2>Planta da instalação</h2>
+    <div class="legend"><span><i style="background:var(--ok)"></i>Disponível</span><span><i style="background:var(--warn)"></i>Pendente ou eficiência reduzida</span><span><i style="background:var(--bad)"></i>Indisponível</span><span><i style="background:var(--none)"></i>Sem sinalização</span></div>
+    <svg viewBox="0 0 770 565" role="group" aria-label="Planta das 12 torres">
+      <rect width="770" height="565" rx="8" fill="#eef1f4"/>
+      <rect x="650" y="0" width="90" height="565" fill="#dfe4ea"/>
+      <line x1="695" y1="14" x2="695" y2="551" stroke="#9aa5b1" stroke-width="2" stroke-dasharray="18 12"/>
+      <text transform="translate(702,282) rotate(90)" text-anchor="middle" font-size="13" fill="#66727f" letter-spacing="3">VIA DE ACESSO</text>
+      ${tiles}
+    </svg>
+  </section>`;
+        document.querySelectorAll(".tile").forEach((g) => {
+          const go = () => {
+            location.hash = "torre-" + g.dataset.t;
+          };
+          g.onclick = go;
+          g.onkeydown = (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              go();
+            }
+          };
+        });
+      }
+
+      /* ===== Torre ===== */
+      function viewTower(n) {
+        if (!draft || draft.tower !== n)
+          draft = { tower: n, target: null, comps: {}, photos: {}, cond: null };
+        const f = towerInfo(n),
+          order = TOWERS.map((t) => t.n).sort((a, b) => a - b),
+          idx = order.indexOf(n);
+        const prev = order[(idx + order.length - 1) % order.length],
+          next = order[(idx + 1) % order.length];
+        $("#app").innerHTML = `
+  <div class="back st-${f.k}"><button class="btn" id="bk">‹ Planta</button><button class="btn" id="pv" aria-label="Torre anterior">‹ ${tw(prev)}</button>
+    <h2>Torre ${tw(n)}</h2><button class="btn" id="nx" aria-label="Próxima torre">${tw(next)} ›</button></div>
+  <div class="eff st-${f.k}">${f.eff === null ? `<span>Sem sinalização registrada.</span>` : `<b>${f.eff}%</b><div><span class="pill">${f.long}</span><div class="note" style="margin-top:4px">${f.gDown ? "Estrutura/tubulação indisponível." : f.run + " de " + CONJ_COUNT + " conjuntos em funcionamento."}</div></div>`}</div>
+  <div class="grid2"><div>
+    <section class="panel"><h2>Representação técnica</h2>
+      <div class="legend"><span>Toque em um conjunto, na tubulação ou na estrutura para sinalizar.</span></div>
+      <div id="draw"></div></section>
+    <section class="panel" style="margin-top:14px"><h2>Conjuntos</h2><ul class="list" id="clist"></ul></section>
+  </div><section class="panel" id="form"></section></div>`;
+        $("#bk").onclick = () => {
+          location.hash = "";
+        };
+        $("#pv").onclick = () => {
+          location.hash = "torre-" + prev;
+        };
+        $("#nx").onclick = () => {
+          location.hash = "torre-" + next;
+        };
+        drawTower();
+        clist();
+        form();
+      }
+      const blades = (cx, cy, r) =>
+        [0, 90, 180, 270]
+          .map(
+            (a) =>
+              `<ellipse cx="${cx}" cy="${cy - r * 0.5}" rx="${r * 0.22}" ry="${r * 0.5}" transform="rotate(${a} ${cx} ${cy})" fill="var(--c)" opacity=".8"/>`,
+          )
+          .join("") +
+        `<circle cx="${cx}" cy="${cy}" r="${r * 0.13}" fill="#1f2933"/>`;
+      function drawTower() {
+        const n = draft.tower,
+          sel = draft.target,
+          gk = kOf(targetInfo(n, "G").cond);
+        const mods = Array.from({ length: CONJ_COUNT }, (_, i) => {
+          const a = i + 1,
+            x = 50 + i * 135,
+            cx = x + 60,
+            i2 = targetInfo(n, a),
+            k = kOf(i2.cond);
+          return `<g class="mod-g st-${k} ${sel === a ? "sel" : ""}" data-a="${a}" tabindex="0" role="button" aria-label="Conjunto ${tw(a)}: ${i2.cond ? COND[i2.cond].t : "Sem sinalização"}">
+      <rect class="mod" x="${x}" y="84" width="120" height="196" rx="6"/>
+      <circle cx="${cx}" cy="156" r="48" fill="#fff" stroke="var(--c)" stroke-width="2"/>
+      ${blades(cx, 156, 44)}
+      <line x1="${cx}" y1="60" x2="${cx}" y2="84" stroke="#1f2933" stroke-width="5"/>
+      <rect x="${x + 25}" y="26" width="70" height="36" rx="6" fill="var(--c)" stroke="#1f2933" stroke-width="2"/>
+      <text x="${cx}" y="49" text-anchor="middle" font-size="12" font-weight="700" fill="${k === "warn" ? "#1f2933" : "#fff"}">MOTOR</text>
+      <text x="${cx}" y="236" text-anchor="middle" class="t-lbl" font-size="14">CONJUNTO ${tw(a)}</text>
+      <text x="${cx}" y="258" text-anchor="middle" class="t-sub" font-size="13">${i2.cond ? COND[i2.cond].t : "Sem sinalização"}${i2.items.length ? " (" + i2.items.length + ")" : ""}</text>
+      <line x1="${cx}" y1="280" x2="${cx}" y2="316" stroke="#9aa5b1" stroke-width="6"/></g>`;
+        }).join("");
+        $("#draw").innerHTML =
+          `<svg viewBox="0 0 900 410" role="group" aria-label="Torre ${tw(n)} - vista técnica">
+    <g class="mod-g st-${gk} ${sel === "G" ? "sel" : ""}" data-a="G" tabindex="0" role="button" aria-label="Estrutura geral">
+      <rect class="mod" x="30" y="10" width="840" height="284" rx="10" style="fill:none;stroke-dasharray:10 6"/></g>
+    ${mods}
+    <g class="mod-g st-${gk} ${sel === "G" ? "sel" : ""}" data-a="G" tabindex="0" role="button" aria-label="Tubulação e distribuição de água">
+      <rect class="mod" x="30" y="316" width="840" height="34" rx="17"/>
+      <line x1="60" y1="333" x2="836" y2="333" stroke="#2f7fd1" stroke-width="4" stroke-dasharray="14 10"/>
+      <path d="M834 322 l18 11 l-18 11z" fill="#2f7fd1"/></g>
+    <text x="450" y="382" text-anchor="middle" class="t-sub" font-size="13">Tubulação de distribuição de água — sentido do fluxo →</text>
+  </svg>`;
+        document.querySelectorAll(".mod-g").forEach((g) => {
+          const a = g.dataset.a === "G" ? "G" : +g.dataset.a,
+            go = () => pick(a);
+          g.onclick = go;
+          g.onkeydown = (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              go();
+            }
+          };
+        });
+      }
+      function pick(a) {
+        draft.target = a;
+        draft.comps = {};
+        draft.photos = {};
+        draft.cond = null;
+        drawTower();
+        clist();
+        form();
+        $("#form").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      function clist() {
+        const n = draft.tower;
+        $("#clist").innerHTML = [
+          "G",
+          ...Array.from({ length: CONJ_COUNT }, (_, i) => i + 1),
+        ]
+          .map((a) => {
+            const i = targetInfo(n, a),
+              k = kOf(i.cond);
+            return `<li><button class="row st-${k} ${draft.target === a ? "sel" : ""}" data-a="${a}"><span class="t"><b>${a === "G" ? "Geral (estrutura e tubulação)" : "Conjunto " + tw(a)}</b> — ${i.cond ? COND[i.cond].t : "Sem sinalização"}
+      ${i.items.map((x) => `<small>• ${x.comp}: ${x.just}</small>`).join("")}
+      ${i.ts ? `<small>Atualizado em ${new Date(i.ts).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</small>` : ""}</span></button></li>`;
+          })
+          .join("");
+        document
+          .querySelectorAll("#clist .row")
+          .forEach(
+            (b) =>
+              (b.onclick = () =>
+                pick(b.dataset.a === "G" ? "G" : +b.dataset.a)),
+          );
+      }
+
+      /* ===== Formulário ===== */
+      function form() {
+        const f = $("#form");
+        if (draft.target === null) {
+          f.innerHTML = `<h2>Sinalização</h2><p class="note">Selecione um conjunto, a estrutura ou a tubulação no desenho para registrar uma pendência.</p>`;
+          return;
+        }
+        const a = draft.target,
+          name = a === "G" ? "Geral da torre" : "Conjunto " + tw(a);
+        f.innerHTML = `<h2>Torre ${tw(draft.tower)} → ${name}</h2>
+  <p class="note" style="margin-top:0">Componentes com problema (um ou mais):</p>
+  <div class="chips">${COMPS.map((c) => `<button class="chip ${c in draft.comps ? "on" : ""}" data-c="${c}" aria-pressed="${c in draft.comps}">${c}</button>`).join("")}</div>
+  <div id="justs">${Object.keys(draft.comps)
+    .map(
+      (c) => `<div class="just"><h4>${c}</h4>
+    <div class="sug">${PRESETS[c].map((p) => `<button data-c="${c}" data-p="${p}">${p}</button>`).join("")}</div>
+    <textarea data-c="${c}" placeholder="${c === "Outros" ? "Digite o problema encontrado (obrigatório)" : "Descreva o problema (obrigatório)"}">${draft.comps[c]}</textarea>
+    <label class="btn" style="display:inline-flex;align-items:center;margin-top:6px;cursor:pointer">📷 Foto<input type="file" accept="image/*" capture="environment" multiple hidden data-c="${c}"></label>
+    <div class="thumbs">${(draft.photos[c] || []).map((u) => `<img src="${u}" alt="Foto anexada">`).join("")}</div></div>`,
+    )
+    .join("")}</div>
+  <p class="note" style="margin-top:12px">Condição ${a === "G" ? "da estrutura geral" : "do conjunto"}:</p>
+  <div class="cond">${Object.entries(COND)
+    .map(
+      ([c, v]) =>
+        `<button class="chip c-${v.k} ${draft.cond === c ? "on" : ""}" data-k="${c}">${v.t}<small>${a === "G" && c === "I" ? "Torre parada" : v.d}</small></button>`,
+    )
+    .join("")}</div>
+  <button class="btn pri" id="sv" style="width:100%">Revisar e salvar</button>`;
+        f.querySelectorAll(".chip[data-c]").forEach(
+          (b) =>
+            (b.onclick = () => {
+              const c = b.dataset.c;
+              if (c in draft.comps) delete draft.comps[c];
+              else draft.comps[c] = "";
+              form();
+            }),
+        );
+        f.querySelectorAll(".sug button").forEach(
+          (b) =>
+            (b.onclick = () => {
+              draft.comps[b.dataset.c] = b.dataset.p;
+              form();
+            }),
+        );
+        f.querySelectorAll("textarea").forEach(
+          (t) =>
+            (t.oninput = () => {
+              draft.comps[t.dataset.c] = t.value;
+              t.classList.remove("err");
+            }),
+        );
+        f.querySelectorAll("input[type=file]").forEach(
+          (i) =>
+            (i.onchange = () => {
+              const c = i.dataset.c;
+              draft.photos[c] = (draft.photos[c] || []).concat(
+                [...i.files].map((x) => URL.createObjectURL(x)),
+              );
+              form();
+            }),
+        );
+        f.querySelectorAll(".cond .chip").forEach(
+          (b) =>
+            (b.onclick = () => {
+              draft.cond = b.dataset.k;
+              form();
+            }),
+        );
+        $("#sv").onclick = confirmSave;
+      }
+      function confirmSave() {
+        const cs = Object.keys(draft.comps);
+        let bad = false;
+        document.querySelectorAll("#justs textarea").forEach((t) => {
+          if (!t.value.trim()) {
+            t.classList.add("err");
+            bad = true;
+          }
+        });
+        if (!draft.cond) {
+          toast("Escolha a condição");
+          return;
+        }
+        if (draft.cond !== "D" && !cs.length) {
+          toast("Selecione ao menos um componente");
+          return;
+        }
+        if (bad) {
+          toast("Preencha a justificativa de cada componente");
+          return;
+        }
+        const a = draft.target,
+          where = a === "G" ? "nos componentes gerais" : "no Conjunto " + tw(a);
+        const txt = cs.length
+          ? "Pendências: " +
+            cs
+              .map((c) => c.toLowerCase() + " (" + draft.comps[c].trim() + ")")
+              .join("; ") +
+            " " +
+            where +
+            "."
+          : "Nenhuma pendência " + where + ".";
+        $("#mbox").innerHTML =
+          `<h3 style="margin-top:0">Confirma a sinalização da Torre ${tw(draft.tower)}?</h3><p>${txt}</p><p><b>Condição: ${COND[draft.cond].t}</b></p>
+    <div class="acts"><button class="btn" id="mc">Voltar</button><button class="btn pri" id="mo">Confirmar</button></div>`;
+        $("#modal").hidden = false;
+        $("#mc").onclick = () => ($("#modal").hidden = true);
+        $("#mo").onclick = async () => {
+          const itens = cs.map((c) => ({
+            componente: c,
+            justificativa: draft.comps[c].trim(),
+            fotos: (draft.photos[c] || []).length,
+          }));
+          try {
+            await api("/api/sinalizacoes", {
+              torre: draft.tower,
+              alvo: String(a),
+              condicao: draft.cond,
+              itens,
+            });
+            await load();
+            $("#modal").hidden = true;
+            const t = draft.tower;
+            draft = null;
+            viewTower(t);
+            toast("Sinalização salva — Torre " + tw(t));
+          } catch (x) {
+            toast(x.message);
+          }
+        };
+      }
+      /* ===== API (backend Spring Boot) ===== */
+      async function api(path, body) {
+        const r = await fetch(path, {
+          method: body ? "POST" : "GET",
+          headers: { "Content-Type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const t = await r.text();
+        let j = null;
+        try {
+          j = t ? JSON.parse(t) : null;
+        } catch (e) {}
+        if (!r.ok) throw new Error((j && j.mensagem) || "Erro " + r.status);
+        return j;
+      }
+      async function load() {
+        const d = await api("/api/estado"),
+          tg = (a) => (/^\d+$/.test(a) ? +a : a);
+        S = {
+          batch: {},
+          log: d.sinalizacoes.map((x) => ({
+            id: String(x.id),
+            tower: x.torre,
+            target: tg(x.alvo),
+            comp: x.componente,
+            just: x.justificativa,
+            photos: x.fotos,
+            cond: x.condicao,
+            ts: Date.parse(x.registradoEm),
+            status: x.situacao,
+            trail: x.atendimentos.map((t) => ({
+              ts: Date.parse(t.em),
+              status: t.situacao,
+              by: t.responsavel || "",
+              text: t.descricao || "",
+            })),
+          })),
+        };
+        d.alvos.forEach((a) => {
+          const t = tg(a.alvo);
+          S.batch[key(a.torre, t)] = {
+            cond: a.condicao,
+            ts: Date.parse(a.atualizadoEm),
+            items: S.log
+              .filter((e) => e.tower === a.torre && e.target === t && e.comp)
+              .map((e) => ({
+                id: e.id,
+                comp: e.comp,
+                just: e.just,
+                photos: e.photos,
+              })),
+          };
+        });
+      }
+      /* ===== Histórico ===== */
+      function uid() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      }
+      function byId() {
+        return Object.fromEntries(S.log.map((e) => [e.id, e]));
+      }
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+      const ST = {
+        A: { t: "Aberta", k: "bad" },
+        E: { t: "Em atendimento", k: "warn" },
+        R: { t: "Resolvida", k: "ok" },
+        "-": { t: "—", k: "none" },
+      };
+      const fdt = (ts) =>
+        new Date(ts).toLocaleString("pt-BR", {
+          dateStyle: "short",
+          timeStyle: "short",
+        });
+      const tgt = (a) => (a === "G" ? "Geral" : tw(a));
+      const blankF = () => ({
+        t: "",
+        a: "",
+        c: "",
+        cond: "",
+        st: "",
+        from: "",
+        to: "",
+      });
+      let F = blankF();
+      const opt = (arr, s) =>
+        arr
+          .map(
+            ([v, l]) =>
+              `<option value="${v}" ${String(s) === String(v) ? "selected" : ""}>${l}</option>`,
+          )
+          .join("");
+      function viewHist() {
+        const sel = (id, label, arr, v) =>
+          `<label>${label}<select id="${id}"><option value="">Todos</option>${opt(arr, v)}</select></label>`;
+        $("#app").innerHTML =
+          `<div class="back"><button class="btn" id="bk">‹ Planta</button><h2>Histórico de sinalizações</h2></div>
+  <section class="panel"><div class="filters">
+  ${sel(
+    "f-t",
+    "Torre",
+    TOWERS.map((t) => t.n)
+      .sort((a, b) => a - b)
+      .map((n) => [n, "Torre " + tw(n)]),
+    F.t,
+  )}
+  ${sel("f-a", "Conjunto", [["G", "Geral"], ...Array.from({ length: CONJ_COUNT }, (_, i) => [i + 1, "Conjunto " + tw(i + 1)])], F.a)}
+  ${sel(
+    "f-c",
+    "Componente",
+    COMPS.map((c) => [c, c]),
+    F.c,
+  )}
+  ${sel(
+    "f-cond",
+    "Condição",
+    Object.entries(COND).map(([k, v]) => [k, v.t]),
+    F.cond,
+  )}
+  ${sel(
+    "f-st",
+    "Situação",
+    [
+      ["A", "Aberta"],
+      ["E", "Em atendimento"],
+      ["R", "Resolvida"],
+    ],
+    F.st,
+  )}
+  <label>De<input type="date" id="f-from" value="${F.from}"></label><label>Até<input type="date" id="f-to" value="${F.to}"></label>
+  <button class="btn" id="f-clr">Limpar filtros</button></div>
+  <div class="tw"><table><thead><tr><th>Data</th><th>Torre</th><th>Conjunto</th><th>Componente</th><th>Justificativa</th><th>Condição</th><th>Situação</th><th></th></tr></thead><tbody id="hrows"></tbody></table></div><p class="note" id="hcount"></p></section>`;
+        $("#bk").onclick = () => {
+          location.hash = "";
+        };
+        [
+          ["t", "f-t"],
+          ["a", "f-a"],
+          ["c", "f-c"],
+          ["cond", "f-cond"],
+          ["st", "f-st"],
+          ["from", "f-from"],
+          ["to", "f-to"],
+        ].forEach(
+          ([k, id]) =>
+            ($("#" + id).onchange = (e) => {
+              F[k] = e.target.value;
+              hrows();
+            }),
+        );
+        $("#f-clr").onclick = () => {
+          F = blankF();
+          viewHist();
+        };
+        hrows();
+      }
+      function hrows() {
+        const from = F.from ? new Date(F.from + "T00:00").getTime() : 0,
+          to = F.to ? new Date(F.to + "T23:59:59").getTime() : Infinity;
+        const L = S.log
+          .filter(
+            (e) =>
+              (!F.t || e.tower == F.t) &&
+              (!F.a || String(e.target) === F.a) &&
+              (!F.c || e.comp === F.c) &&
+              (!F.cond || e.cond === F.cond) &&
+              (!F.st || e.status === F.st) &&
+              e.ts >= from &&
+              e.ts <= to,
+          )
+          .sort((a, b) => b.ts - a.ts);
+        $("#hrows").innerHTML =
+          L.map((e) => {
+            const s = ST[e.status] || ST["-"],
+              c = COND[e.cond],
+              lt = e.trail[e.trail.length - 1];
+            return `<tr><td>${fdt(e.ts)}</td><td>${tw(e.tower)}</td><td>${tgt(e.target)}</td><td>${e.comp || "—"}</td><td>${esc(e.just)}${lt ? `<small>Última atualização: ${esc(lt.text || ST[lt.status].t)}</small>` : ""}</td><td><span class="pill st-${c.k}">${c.t}</span></td><td><span class="pill st-${s.k}">${s.t}</span></td><td>${e.comp ? `<button class="btn" data-id="${e.id}">Atualizar</button>` : ""}</td></tr>`;
+          }).join("") ||
+          `<tr><td colspan="8" class="note">Nenhum registro encontrado.</td></tr>`;
+        $("#hcount").textContent = L.length + " registro(s)";
+        document
+          .querySelectorAll("#hrows [data-id]")
+          .forEach((b) => (b.onclick = () => upd(b.dataset.id)));
+      }
+      function upd(id) {
+        const e = S.log.find((x) => x.id === id);
+        $("#mbox").innerHTML =
+          `<h3 style="margin-top:0">Torre ${tw(e.tower)} · ${e.target === "G" ? "Geral" : "Conjunto " + tw(e.target)} · ${e.comp}</h3><p class="note" style="margin-top:0">${esc(e.just)}<br>Registrado em ${fdt(e.ts)}</p>
+  <label class="fl">Situação<select id="u-s"><option value="A">Aberta</option><option value="E">Em atendimento</option><option value="R">Resolvida</option></select></label>
+  <label class="fl">Responsável<input id="u-b" type="text" placeholder="Nome (opcional)"></label>
+  <label class="fl">Descrição / solução aplicada<textarea id="u-t" placeholder="Obrigatória ao resolver"></textarea></label>
+  ${e.trail.length ? `<div class="trail"><b>Rastreio</b>${e.trail.map((t) => `<small>${fdt(t.ts)} — ${ST[t.status].t}${t.by ? " (" + esc(t.by) + ")" : ""}${t.text ? ": " + esc(t.text) : ""}</small>`).join("")}</div>` : ""}
+  <div class="acts"><button class="btn" id="uc">Cancelar</button><button class="btn pri" id="uo">Salvar</button></div>`;
+        $("#u-s").value = e.status === "-" ? "A" : e.status;
+        $("#modal").hidden = false;
+        $("#uc").onclick = () => ($("#modal").hidden = true);
+        $("#uo").onclick = async () => {
+          const st = $("#u-s").value,
+            tx = $("#u-t").value.trim();
+          if (st === "R" && !tx) {
+            $("#u-t").classList.add("err");
+            toast("Descreva a solução aplicada");
+            return;
+          }
+          try {
+            await api("/api/sinalizacoes/" + id + "/atendimentos", {
+              situacao: st,
+              responsavel: $("#u-b").value.trim(),
+              descricao: tx,
+            });
+            await load();
+            $("#modal").hidden = true;
+            hrows();
+            toast("Pendência atualizada");
+          } catch (x) {
+            toast(x.message);
+          }
+        };
+      }
+      /* ===== Relatório ===== */
+      function csv(L) {
+        const q = (v) =>
+          '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+        const h = [
+          "Torre",
+          "Conjunto",
+          "Componente",
+          "Justificativa",
+          "Condição",
+          "Situação",
+          "Registrado em",
+          "Atendimento / solução",
+        ];
+        return (
+          "\ufeff" +
+          [
+            h,
+            ...L.map((e) => [
+              tw(e.tower),
+              tgt(e.target),
+              e.comp,
+              e.just,
+              COND[e.cond].t,
+              ST[e.status].t,
+              fdt(e.ts),
+              e.trail
+                .map(
+                  (t) =>
+                    fdt(t.ts) +
+                    " " +
+                    ST[t.status].t +
+                    (t.by ? " (" + t.by + ")" : "") +
+                    (t.text ? ": " + t.text : ""),
+                )
+                .join(" | "),
+            ]),
+          ]
+            .map((r) => r.map(q).join(";"))
+            .join("\r\n")
+        );
+      }
+      function viewRel() {
+        const L = S.log
+            .filter((e) => e.comp)
+            .sort((a, b) => a.tower - b.tower || b.ts - a.ts),
+          cnt = (s) => L.filter((e) => e.status === s).length;
+        const trs = TOWERS.map((t) => t.n)
+          .sort((a, b) => a - b)
+          .map((n) => {
+            const f = towerInfo(n),
+              o = L.filter((e) => e.tower === n && e.status !== "R").length;
+            return `<tr><td>Torre ${tw(n)}</td><td><span class="pill st-${f.k}">${f.long}</span></td><td>${f.eff === null ? "—" : f.eff + "%"}</td><td>${o}</td></tr>`;
+          })
+          .join("");
+        const prow =
+          L.map((e) => {
+            const c = COND[e.cond],
+              s = ST[e.status];
+            return `<tr><td>${tw(e.tower)}</td><td>${tgt(e.target)}</td><td>${e.comp}</td><td>${esc(e.just)}</td><td><span class="pill st-${c.k}">${c.t}</span></td><td><span class="pill st-${s.k}">${s.t}</span></td><td>${fdt(e.ts)}</td><td>${e.trail.map((t) => `<small>${fdt(t.ts)} — ${ST[t.status].t}${t.by ? " (" + esc(t.by) + ")" : ""}${t.text ? ": " + esc(t.text) : ""}</small>`).join("") || "—"}</td></tr>`;
+          }).join("") ||
+          '<tr><td colspan="8" class="note">Nenhum problema registrado.</td></tr>';
+        $("#app").innerHTML =
+          `<div class="back no-print"><button class="btn" id="bk">‹ Planta</button><h2>Relatório de problemas</h2><button class="btn" id="rp">Imprimir / PDF</button><button class="btn pri" id="rc" hidden>Baixar CSV</button></div>
+  <section class="panel rep"><h2>Relatório geral — Torres de Resfriamento</h2>
+  <p class="note">Gerado em ${fdt(Date.now())} · ${L.length} registro(s): ${cnt("A")} aberto(s), ${cnt("E")} em atendimento, ${cnt("R")} resolvido(s).</p>
+  <h3>Situação das torres</h3><div class="tw"><table style="min-width:0"><thead><tr><th>Torre</th><th>Situação</th><th>Eficiência</th><th>Pendências abertas</th></tr></thead><tbody>${trs}</tbody></table></div>
+  <h3>Todos os problemas registrados</h3><div class="tw"><table><thead><tr><th>Torre</th><th>Conjunto</th><th>Componente</th><th>Justificativa</th><th>Condição</th><th>Situação</th><th>Registrado</th><th>Atendimento / solução</th></tr></thead><tbody>${prow}</tbody></table></div></section>`;
+        $("#bk").onclick = () => {
+          location.hash = "";
+        };
+        $("#rp").onclick = () => {
+          try {
+            window.print();
+          } catch (e) {
+            toast("Impressão indisponível aqui");
+          }
+        };
+        if (window.claude && claude.use)
+          claude
+            .use("downloads")
+            .then((d) => {
+              if (d) {
+                $("#rc").hidden = false;
+                $("#rc").onclick = () =>
+                  d
+                    .save({
+                      filename:
+                        "relatorio-torres-" +
+                        new Date().toISOString().slice(0, 10) +
+                        ".csv",
+                      data: csv(L),
+                    })
+                    .catch((e) => {
+                      if (e && e.code !== "declined")
+                        toast("Não foi possível salvar o arquivo");
+                    });
+              }
+            })
+            .catch(() => {});
+      }
+      /* ===== Acompanhamento ===== */
+      function viewDash() {
+        const L = S.log.filter((e) => e.comp),
+          n = (s) => L.filter((e) => e.status === s).length;
+        const inf = TOWERS.map((t) => towerInfo(t.n)),
+          tk = (k) => inf.filter((i) => i.k === k).length;
+        const open = new Set(
+          L.filter((e) => e.status !== "R").map(
+            (e) => e.tower + "|" + e.target + "|" + e.comp,
+          ),
+        ).size;
+        const kp = [
+          [TOWERS.length, "Torres", ""],
+          [tk("ok"), "Disponíveis", "ok"],
+          [tk("bad"), "Indisponíveis", "bad"],
+          [tk("warn"), "Pendentes / eficiência reduzida", "warn"],
+          [open, "Componentes com problema", ""],
+          [n("A"), "Pendências abertas", "bad"],
+          [n("E"), "Em atendimento", "warn"],
+          [n("R"), "Resolvidas", "ok"],
+        ];
+        const cnt = (f) => {
+          const m = {};
+          L.forEach((e) => {
+            const k = f(e);
+            m[k] = (m[k] || 0) + 1;
+          });
+          return Object.entries(m).sort((a, b) => b[1] - a[1]);
+        };
+        const bars = (arr) =>
+          arr.length
+            ? arr
+                .map(
+                  ([l, v]) =>
+                    `<div class="bar"><span>${l}</span><div><i style="width:${(v / arr[0][1]) * 100}%"></i></div><b>${v}</b></div>`,
+                )
+                .join("")
+            : '<p class="note">Sem dados.</p>';
+        const dayOf = (ts) => {
+          const d = new Date(ts);
+          d.setHours(0, 0, 0, 0);
+          return d.getTime();
+        };
+        const days = Array.from({ length: 14 }, (_, i) => {
+          const d = new Date();
+          d.setHours(0, 0, 0, 0);
+          d.setDate(d.getDate() - 13 + i);
+          return d.getTime();
+        });
+        const reg = days.map((d) => L.filter((e) => dayOf(e.ts) === d).length),
+          res = days.map((d) =>
+            L.reduce(
+              (s, e) =>
+                s +
+                e.trail.filter((t) => t.status === "R" && dayOf(t.ts) === d)
+                  .length,
+              0,
+            ),
+          );
+        const mx = Math.max(1, ...reg, ...res);
+        const svg = `<svg viewBox="0 0 700 220" role="img" aria-label="Evolução das pendências nos últimos 14 dias"><line x1="30" y1="180" x2="690" y2="180" stroke="#dde3ea"/>${days
+          .map((d, i) => {
+            const x = 40 + i * 47,
+              h1 = (reg[i] / mx) * 150,
+              h2 = (res[i] / mx) * 150;
+            return `<rect x="${x}" y="${180 - h1}" width="18" height="${h1}" fill="var(--navy)"/><rect x="${x + 20}" y="${180 - h2}" width="18" height="${h2}" fill="var(--ok)"/>${reg[i] ? `<text x="${x + 9}" y="${176 - h1}" text-anchor="middle" font-size="11">${reg[i]}</text>` : ""}${res[i] ? `<text x="${x + 29}" y="${176 - h2}" text-anchor="middle" font-size="11">${res[i]}</text>` : ""}<text x="${x + 19}" y="198" text-anchor="middle" font-size="11" fill="#66727f">${new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</text>`;
+          })
+          .join("")}</svg>`;
+        $("#app").innerHTML =
+          `<div class="back"><button class="btn" id="bk">‹ Planta</button><h2>Acompanhamento</h2></div>
+  <div class="kpis">${kp.map(([v, l, k]) => `<div class="kpi ${k ? "st-" + k : ""}"><b>${v}</b><span>${l}</span></div>`).join("")}</div>
+  <div class="grid3"><section class="panel"><h2>Componentes com mais problemas</h2>${bars(cnt((e) => e.comp))}</section>
+  <section class="panel"><h2>Torres com maior frequência de problemas</h2>${bars(cnt((e) => "Torre " + tw(e.tower)))}</section></div>
+  <section class="panel" style="margin-top:14px"><h2>Evolução das pendências — últimos 14 dias</h2><div class="legend"><span><i style="background:var(--navy)"></i>Registradas</span><span><i style="background:var(--ok)"></i>Resolvidas</span></div>${svg}</section>`;
+        $("#bk").onclick = () => {
+          location.hash = "";
+        };
+      }
+      load()
+        .then(route)
+        .catch((e) => {
+          $("#app").innerHTML =
+            '<section class="panel"><h2>Servidor indisponível</h2><p class="note">' +
+            esc(e.message) +
+            "</p></section>";
+        });
+    </script>
+  </body>
+</html>
